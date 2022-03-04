@@ -3,6 +3,7 @@
 #include <Ethernet.h>
 #include <PubSubClient.h>
 #include <SparkFunLSM9DS1.h>
+#include <Time.h>
 
 byte mac[] = {0x00, 0xAA, 0xBB, 0xCC, 0xDE, 0x02};
 LSM9DS1 imu;
@@ -10,6 +11,7 @@ EthernetClient ethClient;
 PubSubClient mqttClient(ethClient);
 const char *server = "192.168.0.109";
 const int port = 1883;
+time_t time = 0 ;
 char packet[90];
 
 void setup() {
@@ -20,6 +22,8 @@ void setup() {
   if (imu.begin((uint8_t)0x6a, (uint8_t)0x1c, Wire) == false){
     Serial.println("Failed to communicate with LSM9DS1.");
     while (1);
+    setTime(0,0,0,0,0,0);
+    
   }
   
   //Serial.print("Initialize Ethernet with DHCP:\n");
@@ -99,6 +103,8 @@ void loop() {
   }
   delay(500);
   
+  time = now();
+  
   sprintf(packet, 
     "{\"ax\":%s,\"ay\":%s,\"az\":%s,\"gx\":%s,\"gy\":%s,\"gz\":%s,\"mx\":%s\"my\":%s,\"mz\":%s}",
     String(imu.calcAccel(imu.ax)).c_str(),
@@ -111,6 +117,8 @@ void loop() {
     String(imu.calcMag(imu.my)).c_str(),
     String(imu.calcMag(imu.mz)).c_str());
   Serial.println(packet);
+  Serial.println("Time: ");
+  Serial.println(time);
 
   if(mqttClient.publish("imu", packet)){
     Serial.println("Publish succeded!");
